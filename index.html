@@ -237,22 +237,22 @@
         </div>
     </div>
 <script>
-    // URL de tu Google Sheets (Mantenela tal cual)
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbg-JdC7bjpgQH1vwdq1m8Or_FTyZXG56lI152bs-_rjFp8yCNYnujB8CCkO_gFkmvEfczJ9uMaXzK/pub?output=csv";
     
     let menuData = [];
     let cart = [];
-    let WHATSAPP_DESTINO = "5491137610574"; // Número por defecto (el de tu última captura)
+    let WHATSAPP_DESTINO = "5491127133428"; 
 
-    // FUNCIÓN CLAVE: Lee las celdas respetando espacios y comillas
+    // NUEVA FUNCIÓN: Procesa la línea respetando espacios y comillas
     function parseCSVLine(text) {
         const result = [];
         let current = '';
         let inQuotes = false;
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
-            if (char === '"') inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) {
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
                 result.push(current.trim());
                 current = '';
             } else {
@@ -269,16 +269,16 @@
             const csv = await resp.text();
             const lines = csv.split(/\r?\n/);
             
+            // Limpiador para quitar comillas de Google Sheets
             const clean = (val) => val ? val.replace(/^"|"$/g, '').trim() : "";
 
             menuData = [];
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
                 
+                // Usamos la nueva función aquí
                 const cols = parseCSVLine(lines[i]);
                 
-                // Mapeo exacto según tus capturas:
-                // A=0(ID), B=1(Cat), C=2(Prod), D=3(Desc), E=4(Precio), F=5(Img), G=6(Disp), K=10(WhatsApp)
                 const obj = {
                     ID: clean(cols[0]) || i.toString(),
                     Categoria: clean(cols[1]) || "Otros",
@@ -289,60 +289,69 @@
                     Disponible: clean(cols[6]).toUpperCase()
                 };
 
-                // Si en la columna K (índice 10) hay un número, lo usamos
+                // REVISIÓN DE WHATSAPP: Buscamos en la columna K (índice 10)
                 if (cols[10]) {
-                    const num = cols[10].replace(/\D/g, '');
-                    if (num.length > 8) WHATSAPP_DESTINO = num;
+                    const foundNum = cols[10].replace(/\D/g, '');
+                    if (foundNum.length > 8) {
+                        WHATSAPP_DESTINO = foundNum;
+                    }
                 }
 
-                // Solo agregamos si tiene nombre y está disponible
                 if (obj.Producto && obj.Disponible === "SI") {
                     menuData.push(obj);
                 }
             }
-            renderMenu(); // Dibujamos el menú una vez cargado
+            console.log("Número de WhatsApp cargado:", WHATSAPP_DESTINO);
+            console.log("Menú cargado con nombres completos");
         } catch (e) {
             console.error("Error cargando Excel:", e);
         }
     }
 
-    // El resto de tus funciones (iniciarMenu, addToCart, enviarWhatsApp) se mantienen igual
-    // pero asegúrate de que renderMenu use el ID con guiones para las categorías:
+    window.onload = cargarDatos;
+
+    function iniciarMenu() {
+        const mesa = document.getElementById('ubicacion').value;
+        if(!mesa) return;
+        document.getElementById('welcome').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('display-mesa').innerText = "📍 " + mesa;
+        renderMenu();
+    }
 
     function renderMenu() {
         const list = document.getElementById('menu-list');
         const nav = document.getElementById('nav-cats');
         list.innerHTML = ""; nav.innerHTML = "";
 
-        const cats = [...new Set(menuData.map(p => p.Categoria))];
+        const items = menuData;
+        const cats = [...new Set(items.map(p => p.Categoria))];
 
         cats.forEach((c, idx) => {
-            // Botón de categoría
             const b = document.createElement('button');
             b.className = `cat-tab ${idx===0?'active':''}`;
             b.innerText = c;
             b.onclick = (e) => {
                 document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
                 e.target.classList.add('active');
-                const safeId = 'cat-' + c.replace(/\s+/g, '-'); // Maneja espacios
+                // ID seguro para navegación
+                const safeId = 'cat-' + c.replace(/\s+/g, '-');
                 const target = document.getElementById(safeId);
                 if(target) window.scrollTo({ top: target.offsetTop - 130, behavior: 'smooth' });
             };
             nav.appendChild(b);
 
-            // Título de categoría
             const t = document.createElement('div');
             t.className = "section-title";
             t.id = 'cat-' + c.replace(/\s+/g, '-');
             t.innerText = c;
             list.appendChild(t);
 
-            // Productos
-            menuData.filter(p => p.Categoria === c).forEach(prod => {
+            items.filter(p => p.Categoria === c).forEach(prod => {
                 const card = document.createElement('div');
                 card.className = "product-card";
                 card.innerHTML = `
-                    <img src="${prod.ImagenURL}" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=400'">
+                    <img src="${prod.ImagenURL}" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=400&auto=format&fit=crop'">
                     <div class="product-body">
                         <span class="product-price">$${prod.Precio}</span>
                         <div class="product-name">${prod.Producto}</div>
@@ -355,8 +364,46 @@
         });
     }
 
-    // Asegúrate de llamar a cargarDatos al inicio
-    window.onload = cargarDatos;
+    function addToCart(id) {
+        const p = menuData.find(x => x.ID === id);
+        const idx = cart.findIndex(c => c.ID === id);
+        const btn = document.getElementById('btn-'+id);
+
+        if(idx > -1) {
+            cart.splice(idx, 1);
+            btn.style.background = "var(--primary)";
+            btn.innerText = "AGREGAR AL PEDIDO";
+        } else {
+            cart.push(p);
+            btn.style.background = "#15803d";
+            btn.innerText = "✓ EN EL CARRITO";
+        }
+        
+        const bar = document.getElementById('order-bar');
+        if(cart.length > 0) {
+            bar.style.display = 'flex';
+            document.getElementById('cart-count').innerText = cart.length;
+            const total = cart.reduce((s,i)=>s+Number(i.Precio.replace(/\./g,'').replace(',','.')),0);
+            document.getElementById('cart-total').innerText = "$" + total.toLocaleString('es-AR');
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    function enviarWhatsApp() {
+        const mesa = document.getElementById('ubicacion').value;
+        const total = document.getElementById('cart-total').innerText;
+        
+        let texto = `*NUEVO PEDIDO - ${mesa.toUpperCase()}*\n`;
+        texto += `------------------------------\n`;
+        cart.forEach(i => texto += `• ${i.Producto} ($${i.Precio})\n`);
+        texto += `------------------------------\n`;
+        texto += `*TOTAL A PAGAR: ${total}*\n\n`;
+        texto += `_Pedido enviado desde el Menú Digital_`;
+
+        const url = `https://wa.me/${WHATSAPP_DESTINO}?text=${encodeURIComponent(texto)}`;
+        window.open(url, '_blank');
+    }
 </script>
 </body>
 </html>
