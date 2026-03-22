@@ -244,37 +244,66 @@
     let cart = [];
     let WHATSAPP_DESTINO = "5491127133428"; 
 
+    // NUEVA FUNCIÓN: Procesa la línea respetando espacios y comillas
+    function parseCSVLine(text) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim());
+        return result;
+    }
+
     async function cargarDatos() {
         try {
             const resp = await fetch(`${CSV_URL}&v=${Date.now()}`);
             const csv = await resp.text();
-            const lines = csv.split("\n");
-            const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+            const lines = csv.split(/\r?\n/);
             
-            let wsIdx = headers.findIndex(h => h.includes("whatsapp"));
-            if(wsIdx === -1) wsIdx = 10;
+            // Limpiador para quitar comillas de Google Sheets
+            const clean = (val) => val ? val.replace(/^"|"$/g, '').trim() : "";
 
             menuData = [];
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-                const cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(",");
-                const obj = {};
-                obj.ID = (cols[0] || i).toString().trim();
-                obj.Categoria = (cols[1] || "Otros").replace(/"/g, "").trim();
-                obj.Producto = (cols[2] || "S/N").replace(/"/g, "").trim();
-                obj.Descripcion = (cols[3] || "").replace(/"/g, "").trim();
-                obj.Precio = (cols[4] || "0").replace(/"/g, "").trim();
-                obj.ImagenURL = (cols[5] || "").replace(/"/g, "").trim();
-                obj.Disponible = (cols[6] || "SI").replace(/"/g, "").trim();
+                
+                // Usamos la nueva función aquí
+                const cols = parseCSVLine(lines[i]);
+                
+                const obj = {
+                    ID: clean(cols[0]) || i.toString(),
+                    Categoria: clean(cols[1]) || "Otros",
+                    Producto: clean(cols[2]),
+                    Descripcion: clean(cols[3]),
+                    Precio: clean(cols[4]) || "0",
+                    ImagenURL: clean(cols[5]),
+                    Disponible: clean(cols[6]).toUpperCase()
+                };
 
-                if (cols[wsIdx]) {
-                    const foundNum = cols[wsIdx].replace(/\D/g, '');
+                // REVISIÓN DE WHATSAPP: Buscamos en la columna K (índice 10)
+                if (cols[10]) {
+                    const foundNum = cols[10].replace(/\D/g, '');
                     if (foundNum.length > 8) {
                         WHATSAPP_DESTINO = foundNum;
                     }
                 }
-                menuData.push(obj);
+
+                if (obj.Producto && obj.Disponible === "SI") {
+                    menuData.push(obj);
+                }
             }
+            console.log("Número de WhatsApp cargado:", WHATSAPP_DESTINO);
+            console.log("Menú cargado con nombres completos");
         } catch (e) {
             console.error("Error cargando Excel:", e);
         }
@@ -296,7 +325,7 @@
         const nav = document.getElementById('nav-cats');
         list.innerHTML = ""; nav.innerHTML = "";
 
-        const items = menuData.filter(p => p.Disponible.toUpperCase() === "SI");
+        const items = menuData;
         const cats = [...new Set(items.map(p => p.Categoria))];
 
         cats.forEach((c, idx) => {
@@ -306,14 +335,16 @@
             b.onclick = (e) => {
                 document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
                 e.target.classList.add('active');
-                const target = document.getElementById('cat-'+c);
-                window.scrollTo({ top: target.offsetTop - 130, behavior: 'smooth' });
+                // ID seguro para navegación
+                const safeId = 'cat-' + c.replace(/\s+/g, '-');
+                const target = document.getElementById(safeId);
+                if(target) window.scrollTo({ top: target.offsetTop - 130, behavior: 'smooth' });
             };
             nav.appendChild(b);
 
             const t = document.createElement('div');
             t.className = "section-title";
-            t.id = 'cat-'+c;
+            t.id = 'cat-' + c.replace(/\s+/g, '-');
             t.innerText = c;
             list.appendChild(t);
 
@@ -353,7 +384,8 @@
         if(cart.length > 0) {
             bar.style.display = 'flex';
             document.getElementById('cart-count').innerText = cart.length;
-            document.getElementById('cart-total').innerText = "$" + cart.reduce((s,i)=>s+Number(i.Precio.replace(/\./g,'')),0).toLocaleString('es-AR');
+            const total = cart.reduce((s,i)=>s+Number(i.Precio.replace(/\./g,'').replace(',','.')),0);
+            document.getElementById('cart-total').innerText = "$" + total.toLocaleString('es-AR');
         } else {
             bar.style.display = 'none';
         }
@@ -361,13 +393,13 @@
 
     function enviarWhatsApp() {
         const mesa = document.getElementById('ubicacion').value;
-        const total = cart.reduce((s,i)=>s+Number(i.Precio.replace(/\./g,'')),0).toLocaleString('es-AR');
+        const total = document.getElementById('cart-total').innerText;
         
         let texto = `*NUEVO PEDIDO - ${mesa.toUpperCase()}*\n`;
         texto += `------------------------------\n`;
         cart.forEach(i => texto += `• ${i.Producto} ($${i.Precio})\n`);
         texto += `------------------------------\n`;
-        texto += `*TOTAL A PAGAR: $${total}*\n\n`;
+        texto += `*TOTAL A PAGAR: ${total}*\n\n`;
         texto += `_Pedido enviado desde el Menú Digital_`;
 
         const url = `https://wa.me/${WHATSAPP_DESTINO}?text=${encodeURIComponent(texto)}`;
