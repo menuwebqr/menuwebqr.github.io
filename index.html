@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Menú Digital | Parrilla Los Hermanos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --max-width: 500px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: var(--max-width);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Pantalla de Bienvenida */
+        #welcome {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.95)), 
+                        url('https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=2069&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .welcome-card {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px 20px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 380px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .select-mesa {
+            width: 100%;
+            padding: 15px;
+            background: #0f172a;
+            border: 2px solid var(--primary);
+            color: white;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 1rem;
+        }
+
+        .btn-start {
+            background: var(--primary);
+            color: white;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        /* App Principal */
+        #app { display: none; padding-top: 140px; padding-bottom: 100px; }
+
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            max-width: var(--max-width);
+            background: #111827;
+            z-index: 500;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .nav-categories {
+            position: fixed;
+            top: 75px;
+            width: 100%;
+            max-width: var(--max-width);
+            background: var(--bg);
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            overflow-x: auto;
+            z-index: 400;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            scrollbar-width: none;
+        }
+        .nav-categories::-webkit-scrollbar { display: none; }
+
+        .cat-tab {
+            background: #334155;
+            padding: 8px 18px;
+            border-radius: 20px;
+            color: white;
+            border: none;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+        .cat-tab.active { background: var(--primary); }
+
+        .section-title {
+            padding: 20px 15px 10px;
+            font-size: 1.4rem;
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .product-card {
+            background: var(--card);
+            margin: 15px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .product-img { width: 100%; height: 180px; object-fit: cover; background: #000; }
+        .product-body { padding: 15px; }
+        .product-name { font-size: 1.1rem; font-weight: bold; color: white; }
+        .product-price { color: var(--primary); font-weight: 800; float: right; font-size: 1.1rem; }
+        .product-desc { font-size: 0.9rem; color: var(--text-muted); margin-top: 8px; min-height: 40px; }
+
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            width: 100%;
+            font-weight: bold;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        .order-bar-container {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            max-width: var(--max-width);
+            padding: 0 15px;
+            z-index: 1000;
+        }
+
+        .order-bar {
+            background: var(--primary);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 18px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(46, 204, 113, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div id="welcome">
+            <div class="welcome-card">
+                <h1 style="margin:0; font-size: 1.8rem;">🔥 Los Hermanos</h1>
+                <p style="color: var(--text-muted); margin-top: 5px;">Parrilla & Restaurante</p>
+               <select id="ubicacion" class="select-mesa">
+            <option value="" disabled selected>-- SELECCIONA TU LUGAR --</option>
+            <optgroup label="SALÓN PRINCIPAL">
+                <option value="Salón - Mesa 1">Mesa 1 (Salón)</option>
+                <option value="Salón - Mesa 2">Mesa 2 (Salón)</option>
+                <option value="Salón - Mesa 3">Mesa 3 (Salón)</option>
+                <option value="Salón - Mesa 4">Mesa 4 (Salón)</option>
+                <option value="Salón - Mesa 5">Mesa 5 (Salón)</option>
+                <option value="Salón - Mesa 6">Mesa 6 (Salón)</option>
+                <option value="Salón - Mesa 7">Mesa 7 (Salón)</option>
+                <option value="Salón - Mesa 8">Mesa 8 (Salón)</option>
+                <option value="Salón - Mesa 9">Mesa 9 (Salón)</option>
+            </optgroup>
+            <optgroup label="MESAS A LA CALLE">
+                <option value="Calle - Mesa 1">Mesa 1 (Calle)</option>
+                <option value="Calle - Mesa 2">Mesa 2 (Calle)</option>
+                <option value="Calle - Mesa 3">Mesa 3 (Calle)</option>
+                <option value="Calle - Mesa 4">Mesa 4 (Calle)</option>
+                <option value="Calle - Mesa 5">Mesa 5 (Calle)</option>
+                <option value="Calle - Mesa 6">Mesa 6 (Calle)</option>
+                <option value="Calle - Mesa 7">Mesa 7 (Calle)</option>
+                <option value="Calle - Mesa 8">Mesa 8 (Calle)</option>
+                <option value="Calle - Mesa 9">Mesa 9 (Calle)</option>
+                <option value="Calle - Mesa 10">Mesa 10 (Calle)</option>
+            </optgroup>
+            <optgroup label="OTROS">
+                <option value="Barra">🍸 Barra</option>
+                <option value="Moto Delivery">🛵 Moto Delivery</option>
+            </optgroup>
+        </select>
+                <button class="btn-start" onclick="iniciarMenu()">ENTRAR AL MENÚ</button>
+            </div>
+        </div>
+
+        <div id="app">
+            <header>
+                <div id="display-mesa" style="font-weight:bold; color:var(--primary); text-transform: uppercase;"></div>
+            </header>
+            <div id="nav-cats" class="nav-categories"></div>
+            <div id="menu-list"></div>
+            <div class="order-bar-container">
+                <div id="order-bar" class="order-bar" onclick="enviarWhatsApp()">
+                    <div><span id="cart-count">0</span> ítems • <span id="cart-total">$0</span></div>
+                    <div style="font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                        ENVIAR PEDIDO <i class="fab fa-whatsapp"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbg-JdC7bjpgQH1vwdq1m8Or_FTyZXG56lI152bs-_rjFp8yCNYnujB8CCkO_gFkmvEfczJ9uMaXzK/pub?output=csv";
+    
+    let menuData = [];
+    let cart = [];
+    let WHATSAPP_DESTINO = "5491127133428"; 
+
+    async function cargarDatos() {
+        try {
+            const resp = await fetch(`${CSV_URL}&v=${Date.now()}`);
+            const csv = await resp.text();
+            const lines = csv.split("\n");
+            const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+            
+            let wsIdx = headers.findIndex(h => h.includes("whatsapp"));
+            if(wsIdx === -1) wsIdx = 10;
+
+            menuData = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(",");
+                const obj = {};
+                obj.ID = (cols[0] || i).toString().trim();
+                obj.Categoria = (cols[1] || "Otros").replace(/"/g, "").trim();
+                obj.Producto = (cols[2] || "S/N").replace(/"/g, "").trim();
+                obj.Descripcion = (cols[3] || "").replace(/"/g, "").trim();
+                obj.Precio = (cols[4] || "0").replace(/"/g, "").trim();
+                obj.ImagenURL = (cols[5] || "").replace(/"/g, "").trim();
+                obj.Disponible = (cols[6] || "SI").replace(/"/g, "").trim();
+
+                if (cols[wsIdx]) {
+                    const foundNum = cols[wsIdx].replace(/\D/g, '');
+                    if (foundNum.length > 8) {
+                        WHATSAPP_DESTINO = foundNum;
+                    }
+                }
+                menuData.push(obj);
+            }
+        } catch (e) {
+            console.error("Error cargando Excel:", e);
+        }
+    }
+
+    window.onload = cargarDatos;
+
+    function iniciarMenu() {
+        const mesa = document.getElementById('ubicacion').value;
+        if(!mesa) return;
+        document.getElementById('welcome').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('display-mesa').innerText = "📍 " + mesa;
+        renderMenu();
+    }
+
+    function renderMenu() {
+        const list = document.getElementById('menu-list');
+        const nav = document.getElementById('nav-cats');
+        list.innerHTML = ""; nav.innerHTML = "";
+
+        const items = menuData.filter(p => p.Disponible.toUpperCase() === "SI");
+        const cats = [...new Set(items.map(p => p.Categoria))];
+
+        cats.forEach((c, idx) => {
+            const b = document.createElement('button');
+            b.className = `cat-tab ${idx===0?'active':''}`;
+            b.innerText = c;
+            b.onclick = (e) => {
+                document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                const target = document.getElementById('cat-'+c);
+                window.scrollTo({ top: target.offsetTop - 130, behavior: 'smooth' });
+            };
+            nav.appendChild(b);
+
+            const t = document.createElement('div');
+            t.className = "section-title";
+            t.id = 'cat-'+c;
+            t.innerText = c;
+            list.appendChild(t);
+
+            items.filter(p => p.Categoria === c).forEach(prod => {
+                const card = document.createElement('div');
+                card.className = "product-card";
+                card.innerHTML = `
+                    <img src="${prod.ImagenURL}" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=400&auto=format&fit=crop'">
+                    <div class="product-body">
+                        <span class="product-price">$${prod.Precio}</span>
+                        <div class="product-name">${prod.Producto}</div>
+                        <div class="product-desc">${prod.Descripcion}</div>
+                        <button class="btn-add" id="btn-${prod.ID}" onclick="addToCart('${prod.ID}')">AGREGAR AL PEDIDO</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        });
+    }
+
+    function addToCart(id) {
+        const p = menuData.find(x => x.ID === id);
+        const idx = cart.findIndex(c => c.ID === id);
+        const btn = document.getElementById('btn-'+id);
+
+        if(idx > -1) {
+            cart.splice(idx, 1);
+            btn.style.background = "var(--primary)";
+            btn.innerText = "AGREGAR AL PEDIDO";
+        } else {
+            cart.push(p);
+            btn.style.background = "#15803d";
+            btn.innerText = "✓ EN EL CARRITO";
+        }
+        
+        const bar = document.getElementById('order-bar');
+        if(cart.length > 0) {
+            bar.style.display = 'flex';
+            document.getElementById('cart-count').innerText = cart.length;
+            document.getElementById('cart-total').innerText = "$" + cart.reduce((s,i)=>s+Number(i.Precio.replace(/\./g,'')),0).toLocaleString('es-AR');
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    function enviarWhatsApp() {
+        const mesa = document.getElementById('ubicacion').value;
+        const total = cart.reduce((s,i)=>s+Number(i.Precio.replace(/\./g,'')),0).toLocaleString('es-AR');
+        
+        let texto = `*NUEVO PEDIDO - ${mesa.toUpperCase()}*\n`;
+        texto += `------------------------------\n`;
+        cart.forEach(i => texto += `• ${i.Producto} ($${i.Precio})\n`);
+        texto += `------------------------------\n`;
+        texto += `*TOTAL A PAGAR: $${total}*\n\n`;
+        texto += `_Pedido enviado desde el Menú Digital_`;
+
+        const url = `https://wa.me/${WHATSAPP_DESTINO}?text=${encodeURIComponent(texto)}`;
+        window.open(url, '_blank');
+    }
+</script>
+</body>
+</html>
